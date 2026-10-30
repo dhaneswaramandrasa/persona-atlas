@@ -8,6 +8,7 @@
 <meta property="og:title" content="Persona Atlas · 3D">
 <meta property="og:description" content="Who is a college student, an informal worker or a mom with kids, read from telco behaviour alone. Simulated data, real method.">
 <meta property="og:image" content="https://dhaneswara-mandrasa.vercel.app/personas-poster.jpg">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Persona Atlas: 3D embedding of synthetic telco subscribers. Points from data/points.json, written by notebooks/persona_atlas.ipynb. */
@@ -59,6 +60,11 @@ h1 sup { font: 500 12px var(--mono); color: var(--muted); letter-spacing: 0; ver
 .kv span { font: 10.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .card { position: absolute; top: 16px; right: 16px; width: 300px; max-height: calc(100% - 32px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 14px; box-shadow: 0 10px 30px rgba(20,20,40,.08); z-index: 2; }
 .card[hidden] { display: none; }
+.mapcard { width: 340px; }
+#mini { height: 300px; margin: 10px -4px 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+.bars.areas span:first-child { cursor: pointer; }
+.bars.areas .on { font-weight: 700; color: var(--accent); }
+.maplibregl-ctrl-attrib { font-size: 9px; }
 .card .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 20px; color: var(--muted); cursor: pointer; }
 .card h3 { margin: 4px 0 0; font-size: 21px; font-weight: 800; letter-spacing: -0.01em; display: flex; gap: 8px; align-items: center; }
 .card h3 i { width: 12px; height: 12px; border-radius: 50%; }
@@ -83,6 +89,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
   .panel { top: auto; bottom: 0; left: 0; right: 0; width: auto; max-height: 52%; border-radius: 14px 14px 0 0; padding: 14px 16px 10px; }
   h1 { font-size: 24px; } .lede { display: none; }
   .card { top: 12px; left: 12px; right: 12px; width: auto; max-height: 40%; }
+  #mini { height: 170px; }
   .back { bottom: auto; top: 12px; right: 12px; } .hint { display: none; }
 }
 </style>
@@ -106,7 +113,16 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
 </aside>
 
 <aside class="card" id="card" hidden aria-live="polite"></aside>
+<aside class="card mapcard" id="mapcard" hidden aria-label="Audience by home area">
+  <p class="kick">Where the audience lives</p>
+  <h3 id="mtitle"></h3>
+  <div id="mini" role="img" aria-label="Map of Jabodetabek with audience members by home area"></div>
+  <p class="sec">By home area <small>· click to pick a market</small></p>
+  <div class="bars areas" id="abars"></div>
+  <p class="foot">Home area comes from where a line sleeps: the cell it uses most between 22:00 and 05:00. Dots are placed around the area centre.</p>
+</aside>
 
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@9.0.38/dist.min.js"></script>
 <script>
 (function () {
@@ -170,6 +186,9 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
 
   // Points come from the notebook (web/data/points.json): a real Word2Vec + k-means run on simulated subscribers.
   var pts = [];
+  // rough centre and spread (degrees) of each home area, AREAS order
+  var GEO = [[106.805, -6.275, .022], [106.835, -6.180, .013], [106.745, -6.165, .02], [106.895, -6.235, .022], [106.860, -6.125, .02],
+             [106.650, -6.270, .035], [106.995, -6.255, .03], [106.815, -6.400, .022], [106.795, -6.590, .03]];
   function load(json) {
     var xyz = json.xyz, names = json.meta.personas, map = names.map(function (n) { return P.filter(function (p) { return p.name === n; })[0]; });
     var step = Math.max(1, Math.round(json.persona.length / N));
@@ -178,7 +197,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
       var pp = json.persona[k] >= 0 && map[json.persona[k]] ? map[json.persona[k]].i : -1;
       var clus = [xyz[3 * k] / 10, xyz[3 * k + 1] / 10, xyz[3 * k + 2] / 10];
       var r = 70 * Math.cbrt(rnd()), th = rnd() * 2 * Math.PI, ph = Math.acos(2 * rnd() - 1);
-      pts.push({ p: pp, area: json.area[k], noise: [r * Math.sin(ph) * Math.cos(th), r * Math.sin(ph) * Math.sin(th), r * Math.cos(ph)], clus: clus, d: 0 });
+      pts.push({ p: pp, area: json.area[k], noise: [r * Math.sin(ph) * Math.cos(th), r * Math.sin(ph) * Math.sin(th), r * Math.cos(ph)], clus: clus, d: 0, ll: [GEO[json.area[k]][0] + gauss() * GEO[json.area[k]][2], GEO[json.area[k]][1] + gauss() * GEO[json.area[k]][2] * .8] });
       if (pp >= 0) { var s = sums[pp]; s[0] += clus[0]; s[1] += clus[1]; s[2] += clus[2]; s[3]++; }
     }
     // persona centre and share come from the data, not from the hand-written profile
@@ -246,7 +265,35 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     layers: [layer()]
   });
   (function spin() { if (spinning) { vs = Object.assign({}, vs, { rotationOrbit: vs.rotationOrbit + 0.06 }); dk.setProps({ viewState: vs }); } requestAnimationFrame(spin); })();
-  function refresh() { stamp++; dk.setProps({ layers: [layer()] }); }
+  function refresh() { stamp++; dk.setProps({ layers: [layer()] }); if (S.step >= 3) updateMap(); }
+
+  // ---------- market map (steps 4 and 5) ----------
+  var mapcard = document.getElementById('mapcard'), mini = null, overlay = null;
+  function inMarket(d) { return !S.areas || S.areas[d.area]; }
+  function mapLayers() {
+    var seedI = byId[S.seedP].i;
+    var shown = pts.filter(function (d) { return d.p === seedI || (S.step === 4 && d.lal); });
+    return [new deck.ScatterplotLayer({
+      id: 'home', data: shown, getPosition: function (d) { return d.ll; }, radiusUnits: 'pixels', getRadius: 2.2,
+      getFillColor: function (d) { var c = !inMarket(d) ? [170, 170, 165] : d.p === seedI ? [59, 63, 182] : AMBER; return [c[0], c[1], c[2], inMarket(d) ? 200 : 70]; },
+      updateTriggers: { getFillColor: stamp }, transitions: { getFillColor: 400 }
+    })];
+  }
+  function updateMap() {
+    if (!mini) {
+      mini = new maplibregl.Map({ container: 'mini', style: 'https://tiles.openfreemap.org/styles/positron', center: [106.83, -6.37], zoom: 8.9, attributionControl: { compact: true }, dragRotate: false });
+      overlay = new deck.MapboxOverlay({ layers: [] }); mini.addControl(overlay);
+    }
+    if (mapcard.dataset.fit !== '1') { mini.resize(); mini.fitBounds([[106.6, -6.66], [107.06, -6.08]], { padding: 12, duration: 0 }); mapcard.dataset.fit = '1'; }
+    overlay.setProps({ layers: mapLayers() });
+    var p = byId[S.seedP], seedI = p.i, cnt = AREAS.map(function () { return 0; });
+    pts.forEach(function (d) { if (d.p === seedI || (S.step === 4 && d.lal)) cnt[d.area]++; });
+    var mx = Math.max.apply(null, cnt), order = cnt.map(function (c, i) { return i; }).sort(function (a, b) { return cnt[b] - cnt[a]; });
+    document.getElementById('mtitle').textContent = p.name + (S.step === 4 && S.lal ? ' + look-alikes' : '');
+    var ab = document.getElementById('abars');
+    ab.innerHTML = order.map(function (i) { var on = S.areas && S.areas[i]; return '<span data-a="' + i + '" class="' + (on ? 'on' : '') + '">' + AREAS[i] + '</span><span class="tr"><b style="width:' + (cnt[i] / mx * 100) + '%;opacity:' + (!S.areas || on ? 1 : .3) + '"></b></span><span class="v">' + fmtT(cnt[i] * PER_DOT) + '</span>'; }).join('');
+    [].forEach.call(ab.querySelectorAll('[data-a]'), function (el) { el.onclick = function () { var a = AREAS.map(function (x, j) { return j === +el.dataset.a ? 1 : 0; }); S.areas = S.areas && S.areas[+el.dataset.a] && S.areas.reduce(function (x, y) { return x + y; }, 0) === 1 ? null : a; recompute(); render(); refresh(); }; });
+  }
 
   // ---------- look-alike + audience ----------
   function recompute() {
@@ -318,6 +365,8 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     if (i === 3) S.lal = 0;
     if (i !== 2) { S.sel = null; card.hidden = true; }
     S.layout = s.layout;
+    if (mapcard.hidden !== (i < 3)) mapcard.dataset.fit = '';
+    mapcard.hidden = i < 3;
     stepEl.innerHTML = '<div class="step"><h2>' + s.h + '</h2>' + s.body + '</div>';
     [].forEach.call(stepsEl.children, function (b, k) { if (k === i) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); b.classList.toggle('done', k < i); });
     document.getElementById('prev').disabled = i === 0;
@@ -344,7 +393,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
       ac.innerHTML = MARKETS.map(function (m, k) { return '<button type="button" data-k="' + k + '" aria-pressed="' + (JSON.stringify(S.areas) === JSON.stringify(m[1])) + '">' + m[0] + '</button>'; }).join('');
       [].forEach.call(ac.children, function (b) { b.onclick = function () { S.areas = MARKETS[+b.dataset.k][1]; recompute(); render(); refresh(); }; });
     }
-    var mk = MARKETS.filter(function (m) { return JSON.stringify(S.areas) === JSON.stringify(m[1]); })[0], mName = mk ? mk[0] : 'selected market';
+    var mk = MARKETS.filter(function (m) { return JSON.stringify(S.areas) === JSON.stringify(m[1]); })[0], mName = mk ? mk[0] : AREAS.filter(function (x, j) { return S.areas[j]; }).join(' + ');
     var p = byId[S.seedP];
     var a = document.getElementById('aud'); if (a) { a.innerHTML = fmt(S.seedN * PER_DOT); document.getElementById('audsub').textContent = p.name + ' · ' + mName; }
     var l = document.getElementById('lal');

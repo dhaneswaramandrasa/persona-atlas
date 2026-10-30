@@ -51,7 +51,7 @@ network events ──► daily token "sentences" ──► Word2Vec ──► su
 1. **Signals**: one subscriber's day as the network sees it
 2. **Embed**: noise until behaviour is turned into vectors
 3. **Personas**: points fly into their clusters; click one for its profile
-4. **Market**: pick a persona and an area and get a reachable audience
+4. **Market**: pick a persona and an area and get a reachable audience, with a Jabodetabek map of where it lives (home area = the cell a line sleeps in)
 5. **Look-alike**: drag reach and watch the audience grow while match quality drops
 
 Personas include high school student, college student, white collar, blue collar, informal worker, mom with kids,
