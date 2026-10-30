@@ -54,6 +54,23 @@ summary = people.groupby('label').agg(share=('cluster', 'size'), gb=('gb_month',
                                       night=('night_share', 'median'), km=('mobility_km', 'median'))
 summary['share'] = (summary.share / len(people)).map('{:.1%}'.format)
 summary.round(2).sort_values('gb', ascending=False)"""),
+md("""## 4b. Supervised where labels exist
+Clustering is the default, but some personas have labels. **White collar** is the clearest case: a telco knows which
+lines sit on a **corporate-paid plan**, and a small occupation survey covers a few percent of subscribers. With labels,
+a supervised model on the same behaviour vectors beats "whichever cluster you fell into", because white-collar people
+who live unusual routines no longer get lost in other clusters.
+
+The final catalogue is hybrid: supervised personas first, clusters for the rest."""),
+code("""rng = np.random.default_rng(11)
+wc = (people.persona == 'wc').to_numpy(bool)
+corporate = (rng.random(len(people)) < np.where(wc, .35, .03)).astype(float)[:, None]   # corporate-paid plan: strong but partial proxy
+wc_pred, wc_prob, wc_rep = m.supervised_persona(X, wc, (people.label == 'White collar').to_numpy(bool), extra=corporate)
+print(f"labelled subscribers used: {wc_rep['labelled']:,} ({wc_rep['labelled'] / len(people):.0%})")
+pd.DataFrame({k: wc_rep[k] for k in ('clustering', 'supervised')}).T.round(2)"""),
+code("""people['method'] = 'cluster'
+people.loc[wc_pred, 'label'] = 'White collar'; people.loc[wc_pred, 'method'] = 'supervised'
+people.loc[(people.label == 'White collar') & ~wc_pred, 'label'] = 'Other'
+people.label.value_counts(normalize=True).round(3).head(12)"""),
 code("""fig, ax = plt.subplots(figsize=(8, 3.2))
 for p in all_personas():
     if p.name in ('College student', 'White collar', 'Night-shift worker', 'Mom with kids'):
@@ -75,7 +92,7 @@ code("""pos = m.layout_3d(X, labels, centers)
 order = [p for p in all_personas() if p.named]
 pidx = np.array([next((j for j, p in enumerate(order) if p.name == l), -1) for l in people.label])
 aidx = people.home.map({a: j for j, a in enumerate(AREAS)}).values
-meta = dict(n=len(people), personas=[p.name for p in order], areas=AREAS,
+meta = dict(n=len(people), personas=[p.name for p in order], areas=AREAS, supervised=['White collar'], wc=wc_rep,
             note='Simulated data. Coordinates ×10. persona = -1 means other clusters.')
 m.export_web('../web/data/points.json', pos, pidx, aidx, meta)
 

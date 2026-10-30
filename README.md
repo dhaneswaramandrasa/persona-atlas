@@ -35,7 +35,11 @@ network events ──► daily token "sentences" ──► Word2Vec ──► su
 1. **Simulate** 20,000 subscribers × 5 days from 30 personas (12 named, 18 generic). Everyone gets a personal twist on their persona's mix, and 15% of events are noise, so personas overlap.
 2. **Embed** each day as a sentence. Word2Vec (skip-gram) learns that `learning-*` domains, late-night time buckets and campus cells go together.
 3. **Cluster** subscriber vectors with k-means (k = 30). Adjusted Rand index ≈ 0.44, purity ≈ 67%: good enough to size markets, honest about overlap.
-4. **Look-alike**: start from a 2% seed list and rank everyone by similarity.
+4. **Supervised where labels exist.** Not every persona comes from clusters. **White collar** has labels: corporate-paid
+   plans (a strong but partial proxy) plus a 3% occupation survey. A logistic model on the same vectors, cut so the
+   predicted share matches the labelled share, beats the cluster label: **precision 0.87 vs 0.67, recall 0.96 vs 0.87**.
+   The catalogue is hybrid: supervised personas first, clusters for the rest.
+5. **Look-alike**: start from a 2% seed list and rank everyone by similarity.
 
 | Audience size (× true persona) | 0.5× | 1× | 2× | 3× |
 |---|---|---|---|---|

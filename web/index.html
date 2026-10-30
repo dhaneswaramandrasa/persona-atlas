@@ -189,7 +189,9 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
   // rough centre and spread (degrees) of each home area, AREAS order
   var GEO = [[106.805, -6.275, .022], [106.835, -6.180, .013], [106.745, -6.165, .02], [106.895, -6.235, .022], [106.860, -6.125, .02],
              [106.650, -6.270, .035], [106.995, -6.255, .03], [106.815, -6.400, .022], [106.795, -6.590, .03]];
+  var SUP = [], WC = null;
   function load(json) {
+    SUP = json.meta.supervised || []; WC = json.meta.wc || null;
     var xyz = json.xyz, names = json.meta.personas, map = names.map(function (n) { return P.filter(function (p) { return p.name === n; })[0]; });
     var step = Math.max(1, Math.round(json.persona.length / N));
     var sums = P.map(function () { return [0, 0, 0, 0]; });
@@ -346,7 +348,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     { t: 'Embed', h: 'Behaviour becomes a vector', layout: 'noise',
       body: '<p>Each day is turned into a sentence of tokens: <code>campus_lms · food_order · night_video · tower_depok</code>. <b>Word2Vec</b> learns which tokens appear together, so a subscriber becomes a point where similar lives sit close.</p><p>Location (home/work towers, mobility radius) and usage (volume, night share, top-up pattern) are added as extra features.</p>' },
     { t: 'Personas', h: 'Clusters get names', layout: 'clus',
-      body: '<p>Close points form groups. Analysts read each group\'s profile and name it. Click a colour or a dot to open its profile.</p><ul class="legend" id="legend"></ul>' },
+      body: '<p>Close points form groups. Analysts read each group\'s profile and name it. Click a colour or a dot to open its profile.</p><p>Where labels exist, a <b>supervised model</b> replaces the cluster. <b>White collar</b> (marked ✦) is trained on corporate-paid plans plus a 3% survey: <span id="wcnum"></span></p><ul class="legend" id="legend"></ul>' },
     { t: 'Market', h: 'Build an audience', layout: 'clus',
       body: '<p>This is the product: a brand picks the persona it needs and the market it sells in, and gets a reachable audience size.</p><p class="sec">Persona</p><div class="chips" id="pchips"></div><p class="sec">Market</p><div class="chips" id="achips"></div><p class="sec">Reachable audience</p><div class="big" id="aud"></div><div class="sub" id="audsub"></div>' },
     { t: 'Look-alike', h: 'Grow it with look-alikes', layout: 'clus',
@@ -380,7 +382,8 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
   }
   function renderLegend() {
     var ul = document.getElementById('legend'); if (!ul) return;
-    ul.innerHTML = P.map(function (p) { return '<li><button type="button" data-i="' + p.i + '" aria-pressed="' + (S.sel === p.i) + '"><i style="background:rgb(' + p.col.join(',') + ')"></i>' + p.name + '<small>' + Math.round(p.share * 100) + '%</small></button></li>'; }).join('') +
+    var wn = document.getElementById('wcnum'); if (wn && WC) wn.textContent = 'precision ' + WC.supervised.precision.toFixed(2) + ' vs ' + WC.clustering.precision.toFixed(2) + ' from clusters, recall ' + WC.supervised.recall.toFixed(2) + ' vs ' + WC.clustering.recall.toFixed(2) + '.';
+    ul.innerHTML = P.map(function (p) { return '<li><button type="button" data-i="' + p.i + '" aria-pressed="' + (S.sel === p.i) + '"><i style="background:rgb(' + p.col.join(',') + ')"></i>' + p.name + (SUP.indexOf(p.name) >= 0 ? ' ✦' : '') + '<small>' + Math.round(p.share * 100) + '%</small></button></li>'; }).join('') +
       '<li><button type="button" disabled style="cursor:default"><i style="background:rgb(' + OTHER.col.join(',') + ')"></i>' + OTHER.name + '<small></small></button></li>';
     [].forEach.call(ul.querySelectorAll('button[data-i]'), function (b) { b.onclick = function () { var i = +b.dataset.i; S.sel = S.sel === i ? null : i; if (S.sel == null) card.hidden = true; else showCard(P[i]); renderLegend(); refresh(); }; });
   }

@@ -82,3 +82,29 @@ def export_web(path, pos, persona_idx, area_idx, meta: dict):
                 persona=persona_idx.tolist(), area=area_idx.tolist())
     with open(path, "w") as f:
         json.dump(data, f, separators=(",", ":"))
+
+
+def supervised_persona(X, truth_mask, cluster_mask, extra=None, label_frac=.03, seed=7):
+    """Score one persona with a supervised model instead of clusters.
+
+    Some personas have labels: a small survey, or a strong proxy such as a corporate-paid plan for
+    white collar. Train on the labelled few, score everyone, and compare with the cluster-based label.
+    The threshold keeps the predicted share equal to the labelled sample's share, so sizes stay unbiased.
+    """
+    from sklearn.linear_model import LogisticRegression
+    truth_mask, cluster_mask = np.asarray(truth_mask, bool), np.asarray(cluster_mask, bool)   # pandas masks index differently
+    rng = np.random.default_rng(seed + 1000)   # independent of the simulation's stream (seed 7 drew the personas)
+    F = X if extra is None else np.hstack([X, extra])
+    F = (F - F.mean(0)) / (F.std(0) + 1e-9)
+    lab = rng.random(len(X)) < label_frac
+    clf = LogisticRegression(C=.5, max_iter=2000).fit(F[lab], truth_mask[lab])   # few labels: keep the model simple
+    prob = clf.predict_proba(F)[:, 1]
+    k = int(round(truth_mask[lab].mean() * len(X)))                             # predicted share = labelled share
+    pred = np.zeros(len(X), bool)
+    pred[np.argsort(-prob)[:k]] = True
+    t = ~lab
+
+    def pr(p):
+        hit = (p & truth_mask)[t].sum()
+        return dict(precision=hit / max(1, p[t].sum()), recall=hit / truth_mask[t].sum())
+    return pred, prob, dict(labelled=int(lab.sum()), supervised=pr(pred), clustering=pr(cluster_mask))
