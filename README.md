@@ -2,9 +2,13 @@
 
 **Who is on the network?** Telco behaviour → Word2Vec embeddings → personas → look-alike audiences.
 
-[**▶ Live 3D demo**](https://dhaneswaramandrasa.github.io/persona-atlas/) · [Notebook](notebooks/persona_atlas.ipynb) · [Portfolio](https://dhaneswara-mandrasa.vercel.app)
+<p align="center">
+  <a href="https://dhaneswaramandrasa.github.io/persona-atlas/"><img src="docs/demo-3d.gif" alt="Simulated telco subscribers fly from noise into persona clusters in 3D" width="100%"></a>
+</p>
+<h3 align="center"><a href="https://dhaneswaramandrasa.github.io/persona-atlas/">▶ Open the 3D Persona Atlas</a></h3>
+<p align="center"><i>Subscribers fly from noise into persona clusters. Pick a persona and a market, see where they live on a Jabodetabek map, and grow the audience with look-alikes.</i><br>Runs in the browser, no install.</p>
 
-![Persona Atlas: look-alike audience in 3D](docs/demo-lookalike.png)
+[Notebook](notebooks/persona_atlas.ipynb) · [Portfolio](https://dhaneswara-mandrasa.vercel.app)
 
 > **Simulated data, real method.** I built the production version at Eureka AI (2021–2024): 30+ personas
 > for 80M+ telco subscribers, sold as audiences to brands. Client data and code stay confidential, so this repo
