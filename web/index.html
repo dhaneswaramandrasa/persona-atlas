@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Persona Atlas · 3D</title>
+<meta name="description" content="Telco subscribers placed by an embedding of their online, location and usage behaviour. Pick a persona, narrow it to a market, and grow it with a look-alike model. Simulated data, real method.">
+<meta property="og:title" content="Persona Atlas · 3D">
+<meta property="og:description" content="Who is a college student, an informal worker or a mom with kids, read from telco behaviour alone. Simulated data, real method.">
+<meta property="og:image" content="https://dhaneswara-mandrasa.vercel.app/personas-poster.jpg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Persona Atlas: 3D embedding of synthetic telco subscribers. Points from data/points.json, written by notebooks/persona_atlas.ipynb. */
+:root { --bg: #f2f1ec; --panel: rgba(255,255,255,.96); --fg: #1a1a1a; --muted: #666666; --ink2: #3d3d3d; --line: #e2e2dc; --accent: #3b3fb6; --soft: #ececf8; --amber: #d9822b; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14.5px/1.5 "Archivo", -apple-system, "Helvetica Neue", Arial, sans-serif; overflow: hidden; }
+#gl { position: fixed; inset: 0; }
+.panel { position: absolute; top: 16px; left: 16px; width: 350px; max-height: calc(100% - 32px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px 14px; box-shadow: 0 10px 30px rgba(20,20,40,.08); z-index: 2; }
+.kick { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0; }
+h1 { font-weight: 800; font-size: 32px; letter-spacing: -0.03em; line-height: 1; margin: 10px 0 0; }
+h1 sup { font: 500 12px var(--mono); color: var(--muted); letter-spacing: 0; vertical-align: 16px; margin-left: 4px; }
+.lede { margin: 10px 0 0; color: var(--ink2); }
+.pill { display: inline-block; margin-top: 10px; font: 500 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); border: 1.5px solid var(--accent); border-radius: 999px; padding: 2px 9px; }
+.steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 16px 0 0; }
+.steps button { font: 500 10.5px var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: none; border: 0; border-top: 3px solid var(--line); padding: 7px 0 0; text-align: left; cursor: pointer; }
+.steps button[aria-current="step"] { color: var(--accent); border-top-color: var(--accent); }
+.steps button.done { border-top-color: #b9bbe6; }
+.step h2 { margin: 14px 0 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+.step p { margin: 6px 0 0; color: var(--ink2); font-size: 13.5px; }
+.sec { margin: 14px 0 6px; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.nav { display: flex; justify-content: space-between; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.nav button, .chips button { font: 600 12.5px "Archivo", sans-serif; color: var(--fg); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.nav button:hover, .chips button:hover { border-color: var(--accent); color: var(--accent); }
+.nav button.go { background: var(--accent); border-color: var(--accent); color: #fff; }
+.nav button:disabled { opacity: .35; cursor: default; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chips button { font-size: 12px; padding: 3px 10px; }
+.chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.legend { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1px 6px; }
+.legend button { width: 100%; display: grid; grid-template-columns: 10px 1fr auto; gap: 7px; align-items: center; font: 500 12.5px "Archivo", sans-serif; color: var(--fg); background: none; border: 0; border-radius: 6px; padding: 3px 5px; cursor: pointer; text-align: left; }
+.legend button:hover { background: var(--soft); }
+.legend button[aria-pressed="true"] { background: var(--soft); font-weight: 700; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; }
+.legend small { font: 11px var(--mono); color: var(--muted); }
+.feed { list-style: none; margin: 8px 0 0; padding: 0; font: 12px/1.45 var(--mono); }
+.feed li { display: grid; grid-template-columns: 42px 1fr; gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--line); opacity: 0; transform: translateY(4px); transition: opacity .3s, transform .3s; }
+.feed li.on { opacity: 1; transform: none; }
+.feed b { color: var(--accent); font-weight: 500; }
+.feed span { color: var(--ink2); }
+.feed em { font-style: normal; color: var(--muted); }
+.big { font-weight: 800; font-size: 40px; letter-spacing: -0.03em; line-height: 1; color: var(--accent); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.big small { font-size: 16px; font-weight: 700; margin-left: 3px; }
+.sub { font: 12px var(--mono); color: var(--muted); margin-top: 2px; }
+.mrow { display: grid; grid-template-columns: 96px 1fr; gap: 8px; align-items: center; margin-top: 8px; font: 600 12.5px "Archivo", sans-serif; }
+.mrow input { width: 100%; accent-color: var(--accent); }
+.kv { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+.kv div { background: #f7f6f2; border-radius: 8px; padding: 7px 9px; }
+.kv b { display: block; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.kv span { font: 10.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.card { position: absolute; top: 16px; right: 16px; width: 300px; max-height: calc(100% - 32px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 14px; box-shadow: 0 10px 30px rgba(20,20,40,.08); z-index: 2; }
+.card[hidden] { display: none; }
+.card .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 20px; color: var(--muted); cursor: pointer; }
+.card h3 { margin: 4px 0 0; font-size: 21px; font-weight: 800; letter-spacing: -0.01em; display: flex; gap: 8px; align-items: center; }
+.card h3 i { width: 12px; height: 12px; border-radius: 50%; }
+.card .desc { margin: 4px 0 0; font-size: 13px; color: var(--ink2); }
+.bars { display: grid; grid-template-columns: 112px 1fr 32px; gap: 4px 8px; align-items: center; font-size: 12.5px; }
+.bars .tr { position: relative; height: 8px; background: #f0efec; border-radius: 2px; }
+.bars .tr b { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 0 3px 3px 0; }
+.bars .tr u { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #1a1a1a; opacity: .5; }
+.bars .v { font: 11px var(--mono); color: var(--muted); text-align: right; }
+.spark svg { display: block; width: 100%; height: 64px; }
+.spark .ax { display: flex; justify-content: space-between; font: 10.5px var(--mono); color: var(--muted); }
+.foot { margin: 12px 0 0; font-size: 11.5px; color: var(--muted); }
+.foot a { color: var(--accent); text-decoration: none; }
+.back { position: absolute; bottom: 16px; right: 16px; z-index: 2; font: 600 13px "Archivo", sans-serif; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; color: var(--fg); text-decoration: none; }
+.back:hover { color: var(--accent); border-color: var(--accent); }
+.hint { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 1; font: 500 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); pointer-events: none; }
+.tt { position: absolute; z-index: 3; pointer-events: none; background: #fff; border-radius: 8px; padding: 6px 10px; font-size: 12.5px; box-shadow: 0 8px 24px rgba(20,20,40,.18); display: none; }
+.tt b { display: block; }
+.tt span { font: 11px var(--mono); color: var(--muted); }
+body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { display: none; }
+@media (max-width: 760px) {
+  .panel { top: auto; bottom: 0; left: 0; right: 0; width: auto; max-height: 52%; border-radius: 14px 14px 0 0; padding: 14px 16px 10px; }
+  h1 { font-size: 24px; } .lede { display: none; }
+  .card { top: 12px; left: 12px; right: 12px; width: auto; max-height: 40%; }
+  .back { bottom: auto; top: 12px; right: 12px; } .hint { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="gl" role="img" aria-label="3D cloud of simulated telco subscribers, grouped into personas"></div>
+<a class="back" href="https://github.com/dhaneswaramandrasa/persona-atlas">Code on GitHub →</a>
+<div class="hint">Drag to orbit · scroll to zoom · click a dot</div>
+<div class="tt" id="tt"></div>
+
+<aside class="panel" aria-label="Story and controls">
+  <p class="kick">Persona Atlas · Jakarta</p>
+  <h1>Who is on the network?<sup>/3D</sup></h1>
+  <p class="lede">Audiences built from telco behaviour alone: the sites people use, where they move and how they use data. No surveys, no app SDK.</p>
+  <span class="pill">Simulated data · real method</span>
+
+  <nav class="steps" id="steps" aria-label="Story steps"></nav>
+  <div id="step"></div>
+  <div class="nav"><button type="button" id="prev">← Back</button><button type="button" id="next" class="go">Next →</button></div>
+  <p class="foot">Built at Eureka AI, 2021–2024, for 80M+ subscribers. Dots, sizes and profiles here are synthetic; clients and data stay confidential. Dots are a real Word2Vec + k-means run (<a href="https://github.com/dhaneswaramandrasa/persona-atlas/blob/main/notebooks/persona_atlas.ipynb">notebook</a>).</p>
+</aside>
+
+<aside class="card" id="card" hidden aria-live="polite"></aside>
+
+<script src="https://unpkg.com/deck.gl@9.0.38/dist.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var SUBS = 80e6;
+  var MOBILE = matchMedia('(max-width: 760px)').matches;
+  var N = MOBILE ? 10000 : 20000;
+  var PER_DOT = SUBS / N;
+
+  // ---------- personas (12 of the 30+ shown; the rest are grey "other") ----------
+  var CATS = ['Social & chat', 'Video & music', 'Games', 'E-commerce', 'Ride & delivery', 'E-wallet & banking', 'News & work tools', 'Learning', 'Jobs & gig apps', 'Parenting & health'];
+  var AREAS = ['Jakarta Selatan', 'Jakarta Pusat', 'Jakarta Barat', 'Jakarta Timur', 'Jakarta Utara', 'Tangerang & BSD', 'Bekasi', 'Depok', 'Bogor'];
+  // hours: [peak hour, width, weight] pairs. cats: weights in CATS order. area: weights in AREAS order.
+  var P = [
+    { id: 'hs', name: 'High school student', col: [232, 93, 117], share: .07, c: [-46, 22, 18], gb: 14, night: .32,
+      d: 'School-hours dip, evening spikes on short video and mobile games. Small prepaid top-ups.',
+      hours: [[7, 1, .4], [13, 2, .8], [20, 3, 1.6]], cats: [9, 8, 9, 3, 1, 1, 1, 5, 0, 0], area: [1, .6, 1.2, 1.5, 1, 1, 1.4, 1, .8] },
+    { id: 'col', name: 'College student', col: [240, 140, 60], share: .065, c: [-30, 34, -8], gb: 22, night: .41,
+      d: 'Campus pings around Depok and Jakarta Selatan, late nights, lots of food delivery and learning platforms.',
+      hours: [[10, 2, .7], [15, 2, .8], [22, 3, 1.5]], cats: [9, 8, 5, 5, 5, 3, 2, 6, 1, 0], area: [1.6, .8, .7, .9, .4, 1, .7, 2.2, .8] },
+    { id: 'wc', name: 'White collar', col: [59, 63, 182], share: .1, c: [34, 26, 4], gb: 26, night: .14,
+      d: 'Weekday commute into CBD towers, work tools 9 to 5, e-wallet and ride-hailing at the edges of the day.',
+      hours: [[7, 1, 1], [12, 1, .8], [18, 1.5, 1.2], [21, 2, .8]], cats: [6, 4, 1, 5, 6, 7, 9, 2, 1, 1], area: [2.4, 2, 1, .6, .6, 1.4, .8, .6, .4] },
+    { id: 'bc', name: 'Blue collar', col: [42, 157, 143], share: .11, c: [30, -28, 20], gb: 9, night: .2,
+      d: 'Fixed shifts in industrial belts, low data volume, chat-heavy, payday spikes in e-wallet top-ups.',
+      hours: [[6, 1, .9], [12, 1, .7], [19, 2, 1.2]], cats: [10, 5, 2, 2, 1, 3, 0, 0, 2, 1], area: [.3, .4, 1.2, 1.4, 1.4, 1.8, 2.2, .7, 1] },
+    { id: 'inf', name: 'Informal worker', col: [140, 160, 40], share: .12, c: [8, -42, -4], gb: 11, night: .27,
+      d: 'Street vendors, ojol riders and day labourers: long on-the-road hours, gig apps, maps, cash-to-wallet.',
+      hours: [[6, 2, .9], [12, 3, 1], [19, 3, 1]], cats: [8, 4, 1, 1, 7, 6, 0, 0, 8, 0], area: [1, 1, 1.2, 1.4, 1.2, 1, 1.2, 1, 1] },
+    { id: 'mom', name: 'Mom with kids', col: [176, 92, 196], share: .085, c: [-6, 40, 26], gb: 16, night: .12,
+      d: 'Home-anchored daytime, school-run trips, parenting content, e-commerce and grocery delivery.',
+      hours: [[6, 1, .7], [10, 2, 1.1], [14, 2, .8], [20, 2, .9]], cats: [8, 4, 1, 9, 6, 4, 1, 3, 0, 9], area: [1.2, .6, 1.1, 1.2, .8, 1.6, 1.4, 1.3, 1.1] },
+    { id: 'night', name: 'Night-shift worker', col: [90, 110, 140], share: .045, c: [44, -10, -30], gb: 13, night: .62,
+      d: 'Security, hospitality and factory night shifts. Activity flipped: peaks at 2 a.m., quiet at noon.',
+      hours: [[1, 2, 1.3], [5, 1, .7], [16, 2, .6]], cats: [7, 8, 3, 2, 2, 3, 0, 0, 2, 0], area: [.8, 1.2, 1, 1, 1.4, 1.3, 1.4, .6, .5] },
+    { id: 'gamer', name: 'Mobile gamer', col: [214, 60, 160], share: .05, c: [-48, -12, -22], gb: 38, night: .48,
+      d: 'Very high data volume, long sessions on game servers, top-ups for in-game currency.',
+      hours: [[13, 2, .6], [21, 3, 1.6]], cats: [3, 5, 10, 2, 1, 3, 0, 0, 0, 0], area: [1, .8, 1.2, 1.2, 1, 1, 1, .9, .7] },
+    { id: 'seller', name: 'Online seller', col: [205, 120, 30], share: .04, c: [6, 10, -40], gb: 24, night: .25,
+      d: 'Seller dashboards on marketplaces, courier pickups, chat with buyers all day.',
+      hours: [[9, 3, 1], [15, 3, 1], [21, 2, .7]], cats: [10, 3, 0, 10, 4, 6, 2, 0, 1, 0], area: [.8, 1.2, 1.6, 1, 1, 1.2, 1, .8, .6] },
+    { id: 'comm', name: 'Bodetabek commuter', col: [70, 140, 210], share: .07, c: [52, 18, 32], gb: 18, night: .1,
+      d: 'Lives in Bekasi, Depok or BSD, works in Jakarta. Two long commuter-line trips a day, podcasts and video on the train.',
+      hours: [[5.5, 1, 1.2], [12, 1, .5], [18, 1.5, 1.3]], cats: [6, 8, 1, 3, 5, 5, 6, 1, 0, 0], area: [.2, .2, .2, .2, .2, 2.4, 2.6, 2, 1.6] },
+    { id: 'affl', name: 'Affluent family', col: [120, 80, 50], share: .035, c: [24, 48, -14], gb: 34, night: .12,
+      d: 'Postpaid lines, many devices per household, travel and premium streaming, weekend mall trips.',
+      hours: [[8, 2, .8], [13, 2, .7], [20, 2, 1.1]], cats: [5, 7, 1, 7, 5, 8, 6, 2, 0, 3], area: [2.6, 1.4, .8, .5, .9, 2, .4, .4, .4] },
+    { id: 'ret', name: 'Retiree', col: [150, 150, 110], share: .03, c: [-20, 0, 44], gb: 5, night: .06,
+      d: 'Early riser, chat groups and religious content, very low volume, mostly at home.',
+      hours: [[5, 1.5, 1.1], [10, 2, .8], [16, 2, .6]], cats: [10, 6, 0, 1, 1, 2, 3, 0, 0, 4], area: [1, 1, 1, 1.2, 1, 1, 1, 1, 1.2] }
+  ];
+  var OTHER = { id: 'other', name: 'Other clusters', col: [190, 188, 180], d: 'Other personas in the full catalogue (drivers, travellers, students abroad, SME owners and more).' };
+  var byId = {}; P.forEach(function (p, i) { p.i = i; byId[p.id] = p; });
+  var GREY = [200, 198, 190], DIM = [215, 213, 206], AMBER = [217, 130, 43];
+
+  // ---------- seeded synthetic data ----------
+  var seed = 7;
+  function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+  function gauss() { var u = 1 - rnd(), v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  function pick(w) { var s = 0, i; for (i = 0; i < w.length; i++) s += w[i]; var r = rnd() * s; for (i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; } return w.length - 1; }
+
+  // Points come from the notebook (web/data/points.json): a real Word2Vec + k-means run on simulated subscribers.
+  var pts = [];
+  function load(json) {
+    var xyz = json.xyz, names = json.meta.personas, map = names.map(function (n) { return P.filter(function (p) { return p.name === n; })[0]; });
+    var step = Math.max(1, Math.round(json.persona.length / N));
+    var sums = P.map(function () { return [0, 0, 0, 0]; });
+    for (var k = 0; k < json.persona.length; k += step) {
+      var pp = json.persona[k] >= 0 && map[json.persona[k]] ? map[json.persona[k]].i : -1;
+      var clus = [xyz[3 * k] / 10, xyz[3 * k + 1] / 10, xyz[3 * k + 2] / 10];
+      var r = 70 * Math.cbrt(rnd()), th = rnd() * 2 * Math.PI, ph = Math.acos(2 * rnd() - 1);
+      pts.push({ p: pp, area: json.area[k], noise: [r * Math.sin(ph) * Math.cos(th), r * Math.sin(ph) * Math.sin(th), r * Math.cos(ph)], clus: clus, d: 0 });
+      if (pp >= 0) { var s = sums[pp]; s[0] += clus[0]; s[1] += clus[1]; s[2] += clus[2]; s[3]++; }
+    }
+    // persona centre and share come from the data, not from the hand-written profile
+    P.forEach(function (p, i) { var s = sums[i]; p.n = s[3]; p.share = s[3] / pts.length; if (s[3]) p.c = [s[0] / s[3], s[1] / s[3], s[2] / s[3]]; });
+    P = P.filter(function (p) { return p.n > 0; }); byId = {}; P.forEach(function (p, i) { p.old = p.i; p.i = i; byId[p.id] = p; });
+    var remap = {}; P.forEach(function (p) { remap[p.old] = p.i; });
+    pts.forEach(function (d) { d.p = d.p >= 0 && remap[d.p] != null ? remap[d.p] : -1; });
+    N = pts.length; PER_DOT = SUBS / N;
+    start();
+  }
+  fetch('data/points.json').then(function (r) { return r.json(); }).then(load);
+
+  function start() {
+  // ---------- state ----------
+  var S = { step: 0, layout: 'noise', sel: null, areas: null, seedP: 'col', lal: 0, matched: 0 };
+
+  // ---------- deck ----------
+  var tt = document.getElementById('tt');
+  function colorOf(d) {
+    if (S.layout === 'noise') return S.step === 0 ? GREY : [150, 152, 200];
+    var p = d.p >= 0 ? P[d.p] : null;
+    if (S.step >= 3) {
+      var seedI = byId[S.seedP].i;
+      var inArea = !S.areas || S.areas[d.area];
+      if (d.p === seedI && inArea) return [59, 63, 182];
+      if (S.step === 4 && d.lal && inArea) return AMBER;
+      return DIM;
+    }
+    if (S.sel != null && d.p !== S.sel) return DIM;
+    return p ? p.col : GREY;
+  }
+  function alphaOf(d) {
+    if (S.step >= 3) { var seedI = byId[S.seedP].i, inArea = !S.areas || S.areas[d.area];
+      return ((d.p === seedI || (S.step === 4 && d.lal)) && inArea) ? 230 : 60; }
+    if (S.sel != null && d.p !== S.sel) return 70;
+    return d.p >= 0 ? 215 : 150;
+  }
+  var stamp = 0;
+  function layer() {
+    return new deck.ScatterplotLayer({
+      id: 'pts', data: pts, billboard: true, radiusUnits: 'pixels', antialiasing: true, pickable: true,
+      getPosition: function (d) { return S.layout === 'noise' ? d.noise : d.clus; },
+      getRadius: function (d) { return (S.step === 4 && d.lal) ? 2.6 : (MOBILE ? 2 : 1.8); },
+      getFillColor: function (d) { var c = colorOf(d); return [c[0], c[1], c[2], alphaOf(d)]; },
+      updateTriggers: { getPosition: S.layout, getFillColor: stamp, getRadius: stamp },
+      transitions: { getPosition: { duration: 2200, easing: function (t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; } }, getFillColor: 500 },
+      onHover: function (info) {
+        if (!info.object) { tt.style.display = 'none'; return; }
+        var o = info.object, p = o.p >= 0 ? P[o.p] : OTHER;
+        tt.innerHTML = '<b>' + (S.layout === 'noise' ? 'Subscriber #' + (info.index * 1907 % 99991) : p.name) + '</b><span>home: ' + AREAS[o.area] + '</span>';
+        tt.style.display = 'block'; tt.style.left = (info.x + 14) + 'px'; tt.style.top = (info.y + 10) + 'px';
+      },
+      onClick: function (info) { if (info.object && info.object.p >= 0 && S.layout !== 'noise') { if (S.step >= 3) { S.seedP = P[info.object.p].id; recompute(); render(); } else { S.sel = info.object.p; showCard(P[S.sel]); refresh(); } } }
+    });
+  }
+  var vs = { target: [0, 0, 0], rotationX: 18, rotationOrbit: -20, zoom: MOBILE ? 1.6 : 2.5, minZoom: 0, maxZoom: 6 };
+  var spinning = true;
+  vs.target = MOBILE ? [0, -30, 0] : [-22, 0, 0];
+  var dk = new deck.Deck({
+    parent: document.getElementById('gl'),
+    views: new deck.OrbitView({ orbitAxis: 'Y', fovy: 40 }),
+    initialViewState: vs, controller: true,
+    onViewStateChange: function (e) { if (e.interactionState && (e.interactionState.isDragging || e.interactionState.isZooming)) spinning = false; vs = e.viewState; dk.setProps({ viewState: vs }); },
+    viewState: vs,
+    layers: [layer()]
+  });
+  (function spin() { if (spinning) { vs = Object.assign({}, vs, { rotationOrbit: vs.rotationOrbit + 0.06 }); dk.setProps({ viewState: vs }); } requestAnimationFrame(spin); })();
+  function refresh() { stamp++; dk.setProps({ layers: [layer()] }); }
+
+  // ---------- look-alike + audience ----------
+  function recompute() {
+    var p = byId[S.seedP], c = p.c, rad = 12 + S.lal * 0.32; // slider 0..100 grows the radius around the seed centre
+    var seedN = 0, lalN = 0;
+    pts.forEach(function (d) {
+      var inArea = !S.areas || S.areas[d.area];
+      var dx = d.clus[0] - c[0], dy = d.clus[1] - c[1], dz = d.clus[2] - c[2];
+      d.lal = S.step === 4 && S.lal > 0 && d.p !== p.i && Math.sqrt(dx * dx + dy * dy + dz * dz) < rad;
+      if (!inArea) return;
+      if (d.p === p.i) seedN++; else if (d.lal) lalN++;
+    });
+    S.seedN = seedN; S.lalN = lalN;
+  }
+  function fmt(n) { return n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + '<small>M</small>' : Math.round(n / 1e3) + '<small>K</small>'; }
+  function fmtT(n) { return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : Math.round(n / 1e3) + 'K'; }
+
+  // ---------- persona card ----------
+  var card = document.getElementById('card');
+  function curve(p) {
+    var v = []; for (var h = 0; h < 24; h++) { var s = .08; p.hours.forEach(function (k) { var dh = Math.min(Math.abs(h - k[0]), 24 - Math.abs(h - k[0])); s += k[2] * Math.exp(-dh * dh / (2 * k[1] * k[1])); }); v.push(s); }
+    return v;
+  }
+  function avgCats() { var a = CATS.map(function () { return 0; }); P.forEach(function (p) { var t = p.cats.reduce(function (x, y) { return x + y; }, 0); p.cats.forEach(function (c, i) { a[i] += c / t / P.length; }); }); return a; }
+  var AVG = avgCats();
+  function showCard(p) {
+    var v = curve(p), mx = Math.max.apply(null, v), w = 260, h = 60;
+    var path = v.map(function (y, i) { return (i ? 'L' : 'M') + (i * w / 23).toFixed(1) + ',' + (h - y / mx * (h - 4)).toFixed(1); }).join('');
+    var t = p.cats.reduce(function (a, b) { return a + b; }, 0);
+    var order = p.cats.map(function (c, i) { return i; }).sort(function (a, b) { return p.cats[b] - p.cats[a]; }).slice(0, 5);
+    var at = p.area.reduce(function (a, b) { return a + b; }, 0);
+    var topA = p.area.map(function (c, i) { return i; }).sort(function (a, b) { return p.area[b] - p.area[a]; }).slice(0, 3);
+    var col = 'rgb(' + p.col.join(',') + ')';
+    card.innerHTML = '<button class="x" type="button" aria-label="Close">×</button>' +
+      '<p class="kick">Persona · ' + fmtT(p.share * SUBS) + ' subscribers</p>' +
+      '<h3><i style="background:' + col + '"></i>' + p.name + '</h3><p class="desc">' + p.d + '</p>' +
+      '<p class="sec">Activity across the day</p><div class="spark"><svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none"><path d="' + path + 'L' + w + ',' + h + 'L0,' + h + 'Z" fill="' + col + '" opacity=".15"/><path d="' + path + '" fill="none" stroke="' + col + '" stroke-width="2"/></svg><div class="ax"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div></div>' +
+      '<p class="sec">Top content (vs. average) </p><div class="bars">' + order.map(function (i) { var s = p.cats[i] / t; return '<span>' + CATS[i] + '</span><span class="tr"><b style="width:' + Math.min(100, s * 300) + '%;background:' + col + '"></b><u style="left:' + Math.min(100, AVG[i] * 300) + '%"></u></span><span class="v">' + Math.round(s * 100) + '%</span>'; }).join('') + '</div>' +
+      '<div class="kv"><div><b>' + p.gb + ' GB</b><span>data / month</span></div><div><b>' + Math.round(p.night * 100) + '%</b><span>after 10 pm</span></div><div><b>' + AREAS[topA[0]].replace('Jakarta ', 'Jkt ') + '</b><span>top home</span></div></div>' +
+      '<p class="sec">Where they live</p><div class="bars">' + topA.map(function (i) { var s = p.area[i] / at; return '<span>' + AREAS[i] + '</span><span class="tr"><b style="width:' + Math.min(100, s * 250) + '%;background:' + col + '"></b></span><span class="v">' + Math.round(s * 100) + '%</span>'; }).join('') + '</div>';
+    card.hidden = false;
+    card.querySelector('.x').onclick = function () { card.hidden = true; S.sel = null; refresh(); renderLegend(); };
+  }
+
+  // ---------- story ----------
+  var FEED = [['06:12', 'Mobility', 'leaves home · Depok, Beji'], ['06:40', 'Ride & delivery', 'bike ride booked'], ['07:05', 'Mobility', 'tower hop · Lenteng Agung → UI campus'], ['09:30', 'Learning', 'campus LMS, 1.2 GB lecture video'], ['12:18', 'Ride & delivery', 'food delivery, transaction'], ['15:02', 'Social & chat', 'group chat, 340 messages'], ['19:45', 'E-commerce', 'browses phone cases, no purchase'], ['23:10', 'Video & music', 'short video, 2 h, 3.4 GB'], ['01:20', 'Games', 'mobile game server, 45 min']];
+  var STEPS = [
+    { t: 'Signals', h: 'One subscriber, one day', layout: 'noise',
+      body: '<p>The network sees no names, only behaviour: which <b>domains</b> a line reaches, which <b>cell towers</b> it pings, and <b>how much data</b> it uses, and when.</p><ul class="feed" id="feed">' + FEED.map(function (f) { return '<li><b>' + f[0] + '</b><span>' + f[2] + ' <em>· ' + f[1] + '</em></span></li>'; }).join('') + '</ul><p>Each grey dot is one subscriber like this. Right now they are just noise.</p>' },
+    { t: 'Embed', h: 'Behaviour becomes a vector', layout: 'noise',
+      body: '<p>Each day is turned into a sentence of tokens: <code>campus_lms · food_order · night_video · tower_depok</code>. <b>Word2Vec</b> learns which tokens appear together, so a subscriber becomes a point where similar lives sit close.</p><p>Location (home/work towers, mobility radius) and usage (volume, night share, top-up pattern) are added as extra features.</p>' },
+    { t: 'Personas', h: 'Clusters get names', layout: 'clus',
+      body: '<p>Close points form groups. Analysts read each group\'s profile and name it. Click a colour or a dot to open its profile.</p><ul class="legend" id="legend"></ul>' },
+    { t: 'Market', h: 'Build an audience', layout: 'clus',
+      body: '<p>This is the product: a brand picks the persona it needs and the market it sells in, and gets a reachable audience size.</p><p class="sec">Persona</p><div class="chips" id="pchips"></div><p class="sec">Market</p><div class="chips" id="achips"></div><p class="sec">Reachable audience</p><div class="big" id="aud"></div><div class="sub" id="audsub"></div>' },
+    { t: 'Look-alike', h: 'Grow it with look-alikes', layout: 'clus',
+      body: '<p>Too small? The <b>look-alike model</b> adds subscribers who are not in the persona but sit close to it in the embedding. More reach, a bit less precision.</p><label class="mrow">Reach<input type="range" id="lal" min="0" max="100" value="0" aria-label="Look-alike reach"></label><div class="kv"><div><b id="k1"></b><span>persona</span></div><div><b id="k2" style="color:var(--amber)"></b><span>look-alikes</span></div><div><b id="k3"></b><span>est. match</span></div></div><p class="sec">Total audience</p><div class="big" id="aud2"></div><div class="sub" id="audsub2"></div>' }
+  ];
+  var stepsEl = document.getElementById('steps'), stepEl = document.getElementById('step');
+  STEPS.forEach(function (s, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = (i + 1) + ' ' + s.t; b.onclick = function () { go(i); }; stepsEl.appendChild(b); });
+  document.getElementById('prev').onclick = function () { go(S.step - 1); };
+  document.getElementById('next').onclick = function () { go(S.step + 1); };
+
+  var feedTimer;
+  function go(i) {
+    if (i < 0 || i >= STEPS.length) return;
+    S.step = i; var s = STEPS[i];
+    if (i < 3) { S.areas = null; S.lal = 0; }
+    if (i === 3) S.lal = 0;
+    if (i !== 2) { S.sel = null; card.hidden = true; }
+    S.layout = s.layout;
+    stepEl.innerHTML = '<div class="step"><h2>' + s.h + '</h2>' + s.body + '</div>';
+    [].forEach.call(stepsEl.children, function (b, k) { if (k === i) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); b.classList.toggle('done', k < i); });
+    document.getElementById('prev').disabled = i === 0;
+    var nx = document.getElementById('next'); nx.disabled = i === STEPS.length - 1; nx.textContent = i === 1 ? 'Cluster them →' : 'Next →';
+    clearInterval(feedTimer);
+    if (i === 0) { var lis = document.querySelectorAll('#feed li'), k = 0; feedTimer = setInterval(function () { if (k < lis.length) lis[k++].classList.add('on'); else clearInterval(feedTimer); }, 350); }
+    if (i === 2) renderLegend();
+    recompute();
+    if (i >= 3) render();
+    refresh();
+  }
+  function renderLegend() {
+    var ul = document.getElementById('legend'); if (!ul) return;
+    ul.innerHTML = P.map(function (p) { return '<li><button type="button" data-i="' + p.i + '" aria-pressed="' + (S.sel === p.i) + '"><i style="background:rgb(' + p.col.join(',') + ')"></i>' + p.name + '<small>' + Math.round(p.share * 100) + '%</small></button></li>'; }).join('') +
+      '<li><button type="button" disabled style="cursor:default"><i style="background:rgb(' + OTHER.col.join(',') + ')"></i>' + OTHER.name + '<small></small></button></li>';
+    [].forEach.call(ul.querySelectorAll('button[data-i]'), function (b) { b.onclick = function () { var i = +b.dataset.i; S.sel = S.sel === i ? null : i; if (S.sel == null) card.hidden = true; else showCard(P[i]); renderLegend(); refresh(); }; });
+  }
+  var MARKETS = [['All Jabodetabek', null], ['Jakarta', [1, 1, 1, 1, 1, 0, 0, 0, 0]], ['Jakarta Selatan', [1, 0, 0, 0, 0, 0, 0, 0, 0]], ['Tangerang & BSD', [0, 0, 0, 0, 0, 1, 0, 0, 0]], ['Bekasi', [0, 0, 0, 0, 0, 0, 1, 0, 0]], ['Depok', [0, 0, 0, 0, 0, 0, 0, 1, 0]]];
+  function render() {
+    var pc = document.getElementById('pchips'), ac = document.getElementById('achips');
+    if (pc) {
+      pc.innerHTML = P.map(function (p) { return '<button type="button" data-id="' + p.id + '" aria-pressed="' + (S.seedP === p.id) + '">' + p.name + '</button>'; }).join('');
+      [].forEach.call(pc.children, function (b) { b.onclick = function () { S.seedP = b.dataset.id; recompute(); render(); refresh(); }; });
+      ac.innerHTML = MARKETS.map(function (m, k) { return '<button type="button" data-k="' + k + '" aria-pressed="' + (JSON.stringify(S.areas) === JSON.stringify(m[1])) + '">' + m[0] + '</button>'; }).join('');
+      [].forEach.call(ac.children, function (b) { b.onclick = function () { S.areas = MARKETS[+b.dataset.k][1]; recompute(); render(); refresh(); }; });
+    }
+    var mk = MARKETS.filter(function (m) { return JSON.stringify(S.areas) === JSON.stringify(m[1]); })[0], mName = mk ? mk[0] : 'selected market';
+    var p = byId[S.seedP];
+    var a = document.getElementById('aud'); if (a) { a.innerHTML = fmt(S.seedN * PER_DOT); document.getElementById('audsub').textContent = p.name + ' · ' + mName; }
+    var l = document.getElementById('lal');
+    if (l) {
+      l.value = S.lal; l.oninput = function () { S.lal = +l.value; recompute(); render(); refresh(); };
+      var tot = S.seedN + S.lalN;
+      document.getElementById('k1').textContent = fmtT(S.seedN * PER_DOT);
+      document.getElementById('k2').textContent = '+' + fmtT(S.lalN * PER_DOT);
+      document.getElementById('k3').textContent = Math.round(100 * (S.seedN + .55 * S.lalN) / Math.max(1, tot)) + '%';
+      document.getElementById('aud2').innerHTML = fmt(tot * PER_DOT);
+      document.getElementById('audsub2').textContent = p.name + ' + look-alikes · ' + mName;
+    }
+  }
+
+  if (/[?&]embed/.test(location.search)) { document.body.classList.add('embed'); }
+  var q = /[?&]step=(\d)/.exec(location.search);
+  go(0);
+  if (q) setTimeout(function () { go(+q[1]); }, 50);
+  else if (document.body.classList.contains('embed')) { setTimeout(function () { go(2); }, 1500); }
+  }
+})();
+</script>
+</body>
+</html>
