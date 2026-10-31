@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Persona Atlas · 3D</title>
+<title>Persona Atlas in 3D</title>
 <meta property="og:type" content="website"><meta property="og:url" content="https://dhaneswaramandrasa.github.io/persona-atlas/"><meta property="og:title" content="Persona Atlas: live 3D demo"><meta property="og:description" content="Who is a college student, an informal worker or a mom with kids, read from telco behaviour alone. Simulated data, real method."><meta property="og:image" content="https://dhaneswara-mandrasa.vercel.app/og-personas.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
 <meta name="description" content="Telco subscribers placed by an embedding of their online, location and usage behaviour. Pick a persona, narrow it to a market, and grow it with a look-alike model. Simulated data, real method.">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
@@ -100,14 +100,14 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
 <body>
 <div id="gl" role="img" aria-label="3D cloud of simulated telco subscribers, grouped into personas"></div>
 <a class="back" href="https://github.com/dhaneswaramandrasa/persona-atlas">Code on GitHub →</a>
-<div class="hint">Drag to orbit · scroll to zoom · click a dot</div>
+<div class="hint">Drag to orbit, scroll to zoom, click a dot</div>
 <div class="tt" id="tt"></div>
 
 <aside class="panel" aria-label="Story and controls">
-  <p class="kick">Persona Atlas · Jakarta</p>
+  <p class="kick">Persona Atlas, Jakarta</p>
   <h1>Who is on the network?<sup>/3D</sup></h1>
   <p class="lede">Audiences built from telco behaviour alone: the sites people use, where they move and how they use data. No surveys, no app SDK.</p>
-  <span class="pill">Simulated data · real method</span>
+  <span class="pill">Simulated data, real method</span>
 
   <nav class="steps" id="steps" aria-label="Story steps"></nav>
   <div id="step"></div>
@@ -120,7 +120,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
   <p class="kick">Where the audience lives</p>
   <h3 id="mtitle"></h3>
   <div id="mini" role="img" aria-label="Map of Jabodetabek with audience members by home area"></div>
-  <p class="sec">By home area <small>· click to pick a market</small></p>
+  <p class="sec">By home area <small>(click to pick a market)</small></p>
   <div class="bars areas" id="abars"></div>
   <p class="foot">Home area comes from where a line sleeps: the cell it uses most between 22:00 and 05:00. Dots are placed around the area centre.</p>
 </aside>
@@ -350,7 +350,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     var topA = p.area.map(function (c, i) { return i; }).sort(function (a, b) { return p.area[b] - p.area[a]; }).slice(0, 3);
     var col = 'rgb(' + p.col.join(',') + ')';
     card.innerHTML = '<button class="x" type="button" aria-label="Close">×</button>' +
-      '<p class="kick">Persona · ' + fmtT(p.share * SUBS) + ' subscribers</p>' +
+      '<p class="kick">' + fmtT(p.share * SUBS) + ' subscribers</p>' +
       '<h3><i style="background:' + col + '"></i>' + p.name + '</h3><p class="desc">' + p.d + '</p>' +
       '<p class="sec">Activity across the day</p><div class="spark"><svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none"><path d="' + path + 'L' + w + ',' + h + 'L0,' + h + 'Z" fill="' + col + '" opacity=".15"/><path d="' + path + '" fill="none" stroke="' + col + '" stroke-width="2"/></svg><div class="ax"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div></div>' +
       '<p class="sec">Top content (vs. average) </p><div class="bars">' + order.map(function (i) { var s = p.cats[i] / t; return '<span>' + CATS[i] + '</span><span class="tr"><b style="width:' + Math.min(100, s * 300) + '%;background:' + col + '"></b><u style="left:' + Math.min(100, AVG[i] * 300) + '%"></u></span><span class="v">' + Math.round(s * 100) + '%</span>'; }).join('') + '</div>' +
