@@ -473,7 +473,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
   var q = /[?&]step=(\d)/.exec(location.search);
   go(0);
   if (q) setTimeout(function () { go(+q[1]); }, 50);
-  else if (document.body.classList.contains('embed')) { setTimeout(function () { go(2); }, 1500); }
+  else if (document.body.classList.contains('embed')) { var hold = /[?&]hold=(\d+)/.exec(location.search); setTimeout(function () { go(2); }, hold ? +hold[1] : 1500); }
   }
 })();
 </script>
