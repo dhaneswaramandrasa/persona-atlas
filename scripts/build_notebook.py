@@ -94,7 +94,15 @@ pidx = np.array([next((j for j, p in enumerate(order) if p.name == l), -1) for l
 aidx = people.home.map({a: j for j, a in enumerate(AREAS)}).values
 meta = dict(n=len(people), personas=[p.name for p in order], areas=AREAS, supervised=['White collar'], wc=wc_rep,
             note='Simulated data. Coordinates ×10. persona = -1 means other clusters.')
-m.export_web('../web/data/points.json', pos, pidx, aidx, meta)
+# each dot as a person: content mix, where they spend the day, when they're online, usage
+top, top_share, day_cells, hours = m.subscriber_profiles(sentences, owner, len(people), CATEGORIES, AREAS)
+work = np.where(day_cells.sum(1) > 0, day_cells.argmax(1), aidx)
+meta['categories'] = CATEGORIES
+extra = dict(cat=top.ravel().tolist(), cat_pct=top_share.ravel().tolist(), work=work.tolist(),
+             hours=hours.ravel().tolist(), gb=people.gb_month.round().astype(int).tolist(),
+             night=(people.night_share * 100).round().astype(int).tolist(),
+             km=people.mobility_km.round().astype(int).tolist())
+m.export_web('../web/data/points.json', pos, pidx, aidx, meta, extra)
 
 fig = plt.figure(figsize=(6, 5)); ax = fig.add_subplot(projection='3d')
 col = np.array([np.array(order[j].color) / 255 if j >= 0 else (.8, .8, .78) for j in pidx])

@@ -56,7 +56,7 @@ network events ──► daily token "sentences" ──► Word2Vec ──► su
 
 `web/index.html` is a single page (deck.gl, no build step) that reads `web/data/points.json`, written by the notebook:
 
-1. **Signals**: one subscriber's day as the network sees it
+1. **Signals**: every dot is a subscriber, coloured by what they do (or where they live, data volume, night share) and sized by data volume; click one for its content mix, hours online, home and daytime location
 2. **Embed**: noise until behaviour is turned into vectors
 3. **Personas**: points fly into their clusters; click one for its profile
 4. **Market**: pick a persona and an area and get a reachable audience, with a Jabodetabek map of where it lives (home area = the cell a line sleeps in)

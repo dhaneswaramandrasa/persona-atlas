@@ -92,6 +92,11 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
   #mini { height: 170px; }
   .back { bottom: auto; top: 12px; right: 12px; } .hint { display: none; }
 }
+.keyrow { display: flex; flex-wrap: wrap; gap: 3px 10px; margin-top: 8px; font-size: 11.5px; color: var(--ink2); align-items: center; }
+.keyrow i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+.keyrow .ramp { display: inline-block; width: 90px; height: 8px; border-radius: 3px; }
+.spark.mono svg { height: 46px; } .spark text, .minimap text { font: 9px "IBM Plex Mono", monospace; fill: #888; }
+.minimap svg { display: block; width: 100%; height: auto; background: #f7f6f2; border-radius: 8px; }
 </style>
 </head>
 <body>
@@ -177,6 +182,10 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
   var OTHER = { id: 'other', name: 'Other clusters', col: [190, 188, 180], d: 'Other personas in the full catalogue (drivers, travellers, students abroad, SME owners and more).' };
   var byId = {}; P.forEach(function (p, i) { p.i = i; byId[p.id] = p; });
   var GREY = [200, 198, 190], DIM = [215, 213, 206], AMBER = [217, 130, 43];
+  // one colour per content category (CATS order), so the noise cloud shows what each person does
+  var CAT_COL = [[232, 93, 117], [176, 92, 196], [214, 60, 160], [240, 140, 60], [42, 157, 143], [59, 63, 182], [70, 140, 210], [140, 160, 40], [205, 120, 30], [150, 150, 110]];
+  var AREA_COL = [[59, 63, 182], [120, 80, 200], [70, 140, 210], [42, 157, 143], [140, 160, 40], [240, 140, 60], [232, 93, 117], [214, 60, 160], [150, 150, 110]];
+  function ramp2(t, a, b) { t = Math.max(0, Math.min(1, t)); return [0, 1, 2].map(function (i) { return Math.round(a[i] + (b[i] - a[i]) * t); }); }
 
   // ---------- seeded synthetic data ----------
   var seed = 7;
@@ -199,7 +208,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
       var pp = json.persona[k] >= 0 && map[json.persona[k]] ? map[json.persona[k]].i : -1;
       var clus = [xyz[3 * k] / 10, xyz[3 * k + 1] / 10, xyz[3 * k + 2] / 10];
       var r = 70 * Math.cbrt(rnd()), th = rnd() * 2 * Math.PI, ph = Math.acos(2 * rnd() - 1);
-      pts.push({ p: pp, area: json.area[k], noise: [r * Math.sin(ph) * Math.cos(th), r * Math.sin(ph) * Math.sin(th), r * Math.cos(ph)], clus: clus, d: 0, ll: [GEO[json.area[k]][0] + gauss() * GEO[json.area[k]][2], GEO[json.area[k]][1] + gauss() * GEO[json.area[k]][2] * .8] });
+      pts.push({ p: pp, area: json.area[k], noise: [r * Math.sin(ph) * Math.cos(th), r * Math.sin(ph) * Math.sin(th), r * Math.cos(ph)], clus: clus, d: 0, k: k, cat: json.cat.slice(3 * k, 3 * k + 3), catp: json.cat_pct.slice(3 * k, 3 * k + 3), work: json.work[k], hours: json.hours.slice(8 * k, 8 * k + 8), gb: json.gb[k], night: json.night[k], km: json.km[k], ll: [GEO[json.area[k]][0] + gauss() * GEO[json.area[k]][2], GEO[json.area[k]][1] + gauss() * GEO[json.area[k]][2] * .8] });
       if (pp >= 0) { var s = sums[pp]; s[0] += clus[0]; s[1] += clus[1]; s[2] += clus[2]; s[3]++; }
     }
     // persona centre and share come from the data, not from the hand-written profile
@@ -214,12 +223,17 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
 
   function start() {
   // ---------- state ----------
-  var S = { step: 0, layout: 'noise', sel: null, areas: null, seedP: 'col', lal: 0, matched: 0 };
+  var S = { step: 0, layout: 'noise', sel: null, areas: null, seedP: 'col', lal: 0, matched: 0, colorBy: 'content', focus: null };
 
   // ---------- deck ----------
   var tt = document.getElementById('tt');
   function colorOf(d) {
-    if (S.layout === 'noise') return S.step === 0 ? GREY : [150, 152, 200];
+    if (S.layout === 'noise') {
+      if (S.colorBy === 'home') return AREA_COL[d.area];
+      if (S.colorBy === 'volume') return ramp2(Math.sqrt(d.gb / 70), [215, 213, 206], [59, 63, 182]);
+      if (S.colorBy === 'night') return ramp2(d.night / 70, [253, 200, 90], [40, 30, 110]);
+      return CAT_COL[d.cat[0]];
+    }
     var p = d.p >= 0 ? P[d.p] : null;
     if (S.step >= 3) {
       var seedI = byId[S.seedP].i;
@@ -235,6 +249,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     if (S.step >= 3) { var seedI = byId[S.seedP].i, inArea = !S.areas || S.areas[d.area];
       return ((d.p === seedI || (S.step === 4 && d.lal)) && inArea) ? 230 : 60; }
     if (S.sel != null && d.p !== S.sel) return 70;
+    if (S.layout === 'noise') return S.focus && d !== S.focus ? 120 : 200;
     return d.p >= 0 ? 215 : 150;
   }
   var stamp = 0;
@@ -242,17 +257,19 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     return new deck.ScatterplotLayer({
       id: 'pts', data: pts, billboard: true, radiusUnits: 'pixels', antialiasing: true, pickable: true,
       getPosition: function (d) { return S.layout === 'noise' ? d.noise : d.clus; },
-      getRadius: function (d) { return (S.step === 4 && d.lal) ? 2.6 : (MOBILE ? 2 : 1.8); },
+      getRadius: function (d) { if (S.layout === 'noise') return (MOBILE ? .7 : .9) + Math.sqrt(d.gb) * (MOBILE ? .35 : .45); return (S.step === 4 && d.lal) ? 2.6 : (MOBILE ? 2 : 1.8); },
       getFillColor: function (d) { var c = colorOf(d); return [c[0], c[1], c[2], alphaOf(d)]; },
       updateTriggers: { getPosition: S.layout, getFillColor: stamp, getRadius: stamp },
       transitions: { getPosition: { duration: 2200, easing: function (t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; } }, getFillColor: 500 },
       onHover: function (info) {
         if (!info.object) { tt.style.display = 'none'; return; }
         var o = info.object, p = o.p >= 0 ? P[o.p] : OTHER;
-        tt.innerHTML = '<b>' + (S.layout === 'noise' ? 'Subscriber #' + (info.index * 1907 % 99991) : p.name) + '</b><span>home: ' + AREAS[o.area] + '</span>';
+        tt.innerHTML = S.layout === 'noise'
+          ? '<b>Subscriber #' + subId(o) + '</b><span>' + CATS[o.cat[0]] + ' ' + o.catp[0] + '% · ' + o.gb + ' GB/mo · ' + o.night + '% at night</span><span>' + AREAS[o.area] + (o.work !== o.area ? ' → ' + AREAS[o.work] : ' (stays local)') + ' · ' + o.km + ' km/day</span>'
+          : '<b>' + p.name + '</b><span>home: ' + AREAS[o.area] + '</span>';
         tt.style.display = 'block'; tt.style.left = (info.x + 14) + 'px'; tt.style.top = (info.y + 10) + 'px';
       },
-      onClick: function (info) { if (info.object && info.object.p >= 0 && S.layout !== 'noise') { if (S.step >= 3) { S.seedP = P[info.object.p].id; recompute(); render(); } else { S.sel = info.object.p; showCard(P[S.sel]); refresh(); } } }
+      onClick: function (info) { if (info.object && S.layout === 'noise') { S.focus = info.object; personCard(info.object); refresh(); return; } if (info.object && info.object.p >= 0 && S.layout !== 'noise') { if (S.step >= 3) { S.seedP = P[info.object.p].id; recompute(); render(); } else { S.sel = info.object.p; showCard(P[S.sel]); refresh(); } } }
     });
   }
   var vs = { target: [0, 0, 0], rotationX: 18, rotationOrbit: -20, zoom: MOBILE ? 1.6 : 2.5, minZoom: 0, maxZoom: 6 };
@@ -267,7 +284,12 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     layers: [layer()]
   });
   (function spin() { if (spinning) { vs = Object.assign({}, vs, { rotationOrbit: vs.rotationOrbit + 0.06 }); dk.setProps({ viewState: vs }); } requestAnimationFrame(spin); })();
-  function refresh() { stamp++; dk.setProps({ layers: [layer()] }); if (S.step >= 3) updateMap(); }
+  function ringLayer() {
+    var f = S.layout === 'noise' && S.focus ? [S.focus] : [];
+    return new deck.ScatterplotLayer({ id: 'ring', data: f, billboard: true, radiusUnits: 'pixels', stroked: true, filled: false,
+      getPosition: function (d) { return d.noise; }, getRadius: 11, getLineColor: [26, 26, 26, 230], lineWidthUnits: 'pixels', getLineWidth: 2, updateTriggers: { getPosition: stamp } });
+  }
+  function refresh() { stamp++; dk.setProps({ layers: [layer(), ringLayer()] }); if (S.step >= 3) updateMap(); }
 
   // ---------- market map (steps 4 and 5) ----------
   var mapcard = document.getElementById('mapcard'), mini = null, overlay = null;
@@ -340,13 +362,48 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     card.querySelector('.x').onclick = function () { card.hidden = true; S.sel = null; refresh(); renderLegend(); };
   }
 
+  // ---------- one subscriber, as the network sees them ----------
+  function subId(d) { return String(100000 + (d.k * 7919) % 899999); }
+  function personCard(d) {
+    var col = rgb(CAT_COL[d.cat[0]]), W = 260, H = 46;
+    var hrs = d.hours, mx = Math.max.apply(null, hrs) || 1;
+    var strip = hrs.map(function (v, i) { var h = v / mx * (H - 12); return '<rect x="' + (i * W / 8 + 2) + '" y="' + (H - 12 - h) + '" width="' + (W / 8 - 4) + '" height="' + h + '" rx="2" fill="' + col + '" opacity="' + (.35 + .65 * v / mx) + '"/><text x="' + (i * W / 8 + W / 16) + '" y="' + (H - 1) + '" text-anchor="middle">' + ('0' + i * 3).slice(-2) + '</text>'; }).join('');
+    // mini map: area centres, home and where they spend the day
+    var x0 = 106.6, x1 = 107.05, y0 = -6.64, y1 = -6.1, MW = 260, MH = 150;
+    function px(g) { return [((g[0] - x0) / (x1 - x0) * MW).toFixed(1), ((y1 - g[1]) / (y1 - y0) * MH).toFixed(1)]; }
+    var dots = GEO.map(function (g, i) { var q = px(g); return '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="3" fill="#cfcdc5"/><text x="' + (+q[0] + 5) + '" y="' + (+q[1] + 3) + '">' + AREAS[i].replace('Jakarta ', 'Jkt ').replace(' & BSD', '') + '</text>'; }).join('');
+    var h = px(GEO[d.area]), w = px(GEO[d.work]);
+    var trip = d.work !== d.area ? '<path d="M' + h[0] + ',' + h[1] + ' Q' + ((+h[0] + +w[0]) / 2 + 18) + ',' + ((+h[1] + +w[1]) / 2 - 18) + ' ' + w[0] + ',' + w[1] + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-dasharray="4 3"/><circle cx="' + w[0] + '" cy="' + w[1] + '" r="6" fill="#fff" stroke="' + col + '" stroke-width="2.5"/>' : '';
+    card.innerHTML = '<button class="x" type="button" aria-label="Close">×</button><p class="kick">Subscriber #' + subId(d) + '</p>' +
+      '<h3><i style="background:' + col + '"></i>' + CATS[d.cat[0]] + '</h3><p class="desc">What the network sees for this line over 5 days. No name, no age, no survey: the persona is not known yet.</p>' +
+      '<div class="kv"><div><b>' + d.gb + ' GB</b><span>data / month</span></div><div><b>' + d.night + '%</b><span>after 10 pm</span></div><div><b>' + d.km + ' km</b><span>daily radius</span></div></div>' +
+      '<p class="sec">Content mix</p><div class="bars">' + d.cat.map(function (c, i) { return '<span>' + CATS[c] + '</span><span class="tr"><b style="width:' + Math.min(100, d.catp[i] * 2) + '%;background:' + rgb(CAT_COL[c]) + '"></b></span><span class="v">' + d.catp[i] + '%</span>'; }).join('') + '</div>' +
+      '<p class="sec">When they are online</p><div class="spark mono"><svg viewBox="0 0 ' + W + ' ' + H + '">' + strip + '</svg></div>' +
+      '<p class="sec">Where they sleep and spend the day</p><div class="minimap"><svg viewBox="-4 -4 ' + (MW + 70) + ' ' + (MH + 8) + '">' + dots + trip + '<circle cx="' + h[0] + '" cy="' + h[1] + '" r="6" fill="' + col + '"/></svg></div>' +
+      '<p class="sub">● home ' + AREAS[d.area] + (d.work !== d.area ? ' · ○ day ' + AREAS[d.work] : ' · stays local') + '</p>';
+    card.hidden = false;
+    card.querySelector('.x').onclick = function () { card.hidden = true; S.focus = null; refresh(); };
+  }
+  function rgb(c) { return 'rgb(' + c.join(',') + ')'; }
+  function colorChips() {
+    return '<p class="sec">Colour each subscriber by</p><div class="chips" id="cchips">' + [['content', 'What they do'], ['home', 'Where they live'], ['volume', 'Data volume'], ['night', 'Night share']].map(function (o) { return '<button type="button" data-c="' + o[0] + '" aria-pressed="' + (S.colorBy === o[0]) + '">' + o[1] + '</button>'; }).join('') + '</div><div class="keyrow" id="ckey"></div>';
+  }
+  function renderKey() {
+    var el = document.getElementById('ckey'); if (!el) return;
+    if (S.colorBy === 'content') el.innerHTML = CATS.map(function (c, i) { return '<span><i style="background:' + rgb(CAT_COL[i]) + '"></i>' + c + '</span>'; }).join('');
+    else if (S.colorBy === 'home') el.innerHTML = AREAS.map(function (c, i) { return '<span><i style="background:' + rgb(AREA_COL[i]) + '"></i>' + c + '</span>'; }).join('');
+    else if (S.colorBy === 'volume') el.innerHTML = '<span>low</span><b class="ramp" style="background:linear-gradient(90deg,rgb(215,213,206),rgb(59,63,182))"></b><span>high GB</span>';
+    else el.innerHTML = '<span>day</span><b class="ramp" style="background:linear-gradient(90deg,rgb(253,200,90),rgb(40,30,110))"></b><span>night owl</span>';
+    [].forEach.call(document.querySelectorAll('#cchips button'), function (b) { b.setAttribute('aria-pressed', b.dataset.c === S.colorBy); b.onclick = function () { S.colorBy = b.dataset.c; renderKey(); refresh(); }; });
+  }
+
   // ---------- story ----------
   var FEED = [['06:12', 'Mobility', 'leaves home · Depok, Beji'], ['06:40', 'Ride & delivery', 'bike ride booked'], ['07:05', 'Mobility', 'tower hop · Lenteng Agung → UI campus'], ['09:30', 'Learning', 'campus LMS, 1.2 GB lecture video'], ['12:18', 'Ride & delivery', 'food delivery, transaction'], ['15:02', 'Social & chat', 'group chat, 340 messages'], ['19:45', 'E-commerce', 'browses phone cases, no purchase'], ['23:10', 'Video & music', 'short video, 2 h, 3.4 GB'], ['01:20', 'Games', 'mobile game server, 45 min']];
   var STEPS = [
     { t: 'Signals', h: 'One subscriber, one day', layout: 'noise',
-      body: '<p>The network sees no names, only behaviour: which <b>domains</b> a line reaches, which <b>cell towers</b> it pings, and <b>how much data</b> it uses, and when.</p><ul class="feed" id="feed">' + FEED.map(function (f) { return '<li><b>' + f[0] + '</b><span>' + f[2] + ' <em>· ' + f[1] + '</em></span></li>'; }).join('') + '</ul><p>Each grey dot is one subscriber like this. Right now they are just noise.</p>' },
+      body: '<p>The network sees no names, only behaviour: which <b>domains</b> a line reaches, which <b>cell towers</b> it pings, and <b>how much data</b> it uses, and when.</p><ul class="feed" id="feed">' + FEED.map(function (f) { return '<li><b>' + f[0] + '</b><span>' + f[2] + ' <em>· ' + f[1] + '</em></span></li>'; }).join('') + '</ul><p>Every dot is one subscriber like this, sized by data volume. Click any dot to see their profile: content mix, hours online, home and where they spend the day. No one has a persona yet.</p>' + colorChips() },
     { t: 'Embed', h: 'Behaviour becomes a vector', layout: 'noise',
-      body: '<p>Each day is turned into a sentence of tokens: <code>campus_lms · food_order · night_video · tower_depok</code>. <b>Word2Vec</b> learns which tokens appear together, so a subscriber becomes a point where similar lives sit close.</p><p>Location (home/work towers, mobility radius) and usage (volume, night share, top-up pattern) are added as extra features.</p>' },
+      body: '<p>Each day is turned into a sentence of tokens: <code>campus_lms · food_order · night_video · tower_depok</code>. <b>Word2Vec</b> learns which tokens appear together, so a subscriber becomes a point where similar lives sit close.</p><p>Location (home/work towers, mobility radius) and usage (volume, night share, top-up pattern) are added as extra features.</p>' + colorChips() },
     { t: 'Personas', h: 'Clusters get names', layout: 'clus',
       body: '<p>Close points form groups. Analysts read each group\'s profile and name it. Click a colour or a dot to open its profile.</p><p>Where labels exist, a <b>supervised model</b> replaces the cluster. <b>White collar</b> (marked ✦) is trained on corporate-paid plans plus a 3% survey: <span id="wcnum"></span></p><ul class="legend" id="legend"></ul>' },
     { t: 'Market', h: 'Build an audience', layout: 'clus',
@@ -365,7 +422,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     S.step = i; var s = STEPS[i];
     if (i < 3) { S.areas = null; S.lal = 0; }
     if (i === 3) S.lal = 0;
-    if (i !== 2) { S.sel = null; card.hidden = true; }
+    if (i !== 2) { S.sel = null; if (i >= 2) card.hidden = true; }
     S.layout = s.layout;
     if (mapcard.hidden !== (i < 3)) mapcard.dataset.fit = '';
     mapcard.hidden = i < 3;
@@ -376,6 +433,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     clearInterval(feedTimer);
     if (i === 0) { var lis = document.querySelectorAll('#feed li'), k = 0; feedTimer = setInterval(function () { if (k < lis.length) lis[k++].classList.add('on'); else clearInterval(feedTimer); }, 350); }
     if (i === 2) renderLegend();
+    if (i < 2) { renderKey(); if (!S.focus) { S.focus = pts.filter(function (d) { return d.p >= 0 && P[d.p].id === 'col' && AREAS[d.area] === 'Depok' && d.work !== d.area; })[0] || pts[0]; } if (!MOBILE) personCard(S.focus); } else { if (S.focus) card.hidden = true; S.focus = null; }
     recompute();
     if (i >= 3) render();
     refresh();

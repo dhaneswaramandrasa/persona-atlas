@@ -75,11 +75,11 @@ def layout_3d(X, labels, centers, spread: float = 7.0, radius: float = 55.0, see
     return pos
 
 
-def export_web(path, pos, persona_idx, area_idx, meta: dict):
+def export_web(path, pos, persona_idx, area_idx, meta: dict, extra: dict = None):
     """Write a compact JSON the web demo reads: int coords ×10, persona index, home-area index."""
     data = dict(meta=meta,
                 xyz=np.round(pos * 10).astype(int).ravel().tolist(),
-                persona=persona_idx.tolist(), area=area_idx.tolist())
+                persona=persona_idx.tolist(), area=area_idx.tolist(), **(extra or {}))
     with open(path, "w") as f:
         json.dump(data, f, separators=(",", ":"))
 
@@ -108,3 +108,32 @@ def supervised_persona(X, truth_mask, cluster_mask, extra=None, label_frac=.03, 
         hit = (p & truth_mask)[t].sum()
         return dict(precision=hit / max(1, p[t].sum()), recall=hit / truth_mask[t].sum())
     return pred, prob, dict(labelled=int(lab.sum()), supervised=pr(pred), clustering=pr(cluster_mask))
+
+
+def subscriber_profiles(sentences, owner, n, categories, areas):
+    """Per subscriber, from their own token sentences: content mix, work area, hourly activity.
+
+    Returns int arrays the web demo uses to draw each dot as a person: top 3 content categories with
+    shares (%), the most-used daytime cell outside home, and activity per 3-hour bucket (%).
+    """
+    cat_idx = {c: i for i, c in enumerate(categories)}
+    area_idx = {a: i for i, a in enumerate(areas)}
+    cats = np.zeros((n, len(categories)))
+    cells = np.zeros((n, len(areas)))
+    hours = np.zeros((n, 8))
+    for sent, i in zip(sentences, owner):
+        last_t = 0
+        for tok in sent:
+            if tok.endswith(".example"):
+                cats[i, cat_idx[tok.rsplit("-", 1)[0]]] += 1
+            elif tok.startswith("cell_"):
+                if 3 <= last_t <= 5:                       # 09:00-17:59: where they spend the day
+                    cells[i, area_idx[tok[5:]]] += 1
+            elif tok.startswith("t"):
+                last_t = int(tok[1:])
+                hours[i, last_t] += 1
+    share = cats / cats.sum(1, keepdims=True)
+    top = np.argsort(-share, 1)[:, :3]
+    top_share = np.round(np.take_along_axis(share, top, 1) * 100).astype(int)
+    hours = np.round(hours / hours.sum(1, keepdims=True) * 100).astype(int)
+    return top, top_share, cells, hours
