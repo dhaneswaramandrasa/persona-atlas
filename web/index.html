@@ -15,18 +15,18 @@
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14.5px/1.5 "Archivo", -apple-system, "Helvetica Neue", Arial, sans-serif; overflow: hidden; }
 #gl { position: fixed; inset: 0; }
 .panel { position: absolute; top: 16px; left: 16px; width: 350px; max-height: calc(100% - 32px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px 14px; box-shadow: 0 10px 30px rgba(20,20,40,.08); z-index: 2; }
-.kick { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0; }
+.kick { font: 500 11px var(--mono); letter-spacing: .12em; color: var(--accent); margin: 0; }
 h1 { font-weight: 800; font-size: 32px; letter-spacing: -0.03em; line-height: 1; margin: 10px 0 0; }
 h1 sup { font: 500 12px var(--mono); color: var(--muted); letter-spacing: 0; vertical-align: 16px; margin-left: 4px; }
 .lede { margin: 10px 0 0; color: var(--ink2); }
-.pill { display: inline-block; margin-top: 10px; font: 500 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); border: 1.5px solid var(--accent); border-radius: 999px; padding: 2px 9px; }
+.pill { display: inline-block; margin-top: 10px; font: 500 10.5px var(--mono); letter-spacing: .1em; color: var(--accent); border: 1.5px solid var(--accent); border-radius: 999px; padding: 2px 9px; }
 .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 16px 0 0; }
-.steps button { font: 500 10.5px var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: none; border: 0; border-top: 3px solid var(--line); padding: 7px 0 0; text-align: left; cursor: pointer; }
+.steps button { font: 500 10.5px var(--mono); letter-spacing: .04em; color: var(--muted); background: none; border: 0; border-top: 3px solid var(--line); padding: 7px 0 0; text-align: left; cursor: pointer; }
 .steps button[aria-current="step"] { color: var(--accent); border-top-color: var(--accent); }
 .steps button.done { border-top-color: #b9bbe6; }
 .step h2 { margin: 14px 0 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
 .step p { margin: 6px 0 0; color: var(--ink2); font-size: 13.5px; }
-.sec { margin: 14px 0 6px; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.sec { margin: 14px 0 6px; font: 500 11px var(--mono); letter-spacing: .1em; color: var(--muted); }
 .nav { display: flex; justify-content: space-between; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
 .nav button, .chips button { font: 600 12.5px "Archivo", sans-serif; color: var(--fg); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
 .nav button:hover, .chips button:hover { border-color: var(--accent); color: var(--accent); }
@@ -55,7 +55,7 @@ h1 sup { font: 500 12px var(--mono); color: var(--muted); letter-spacing: 0; ver
 .kv { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
 .kv div { background: #f7f6f2; border-radius: 8px; padding: 7px 9px; }
 .kv b { display: block; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.kv span { font: 10.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.kv span { font: 10.5px var(--mono); color: var(--muted); letter-spacing: .05em; }
 .card { position: absolute; top: 16px; right: 16px; width: 300px; max-height: calc(100% - 32px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 14px; box-shadow: 0 10px 30px rgba(20,20,40,.08); z-index: 2; }
 .card[hidden] { display: none; }
 .mapcard { width: 340px; }
@@ -78,7 +78,7 @@ h1 sup { font: 500 12px var(--mono); color: var(--muted); letter-spacing: 0; ver
 .foot a { color: var(--accent); text-decoration: none; }
 .back { position: absolute; bottom: 16px; right: 16px; z-index: 2; font: 600 13px "Archivo", sans-serif; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; color: var(--fg); text-decoration: none; }
 .back:hover { color: var(--accent); border-color: var(--accent); }
-.hint { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 1; font: 500 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); pointer-events: none; }
+.hint { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 1; font: 500 10.5px var(--mono); letter-spacing: .1em; color: var(--muted); pointer-events: none; }
 .tt { position: absolute; z-index: 3; pointer-events: none; background: #fff; border-radius: 8px; padding: 6px 10px; font-size: 12.5px; box-shadow: 0 8px 24px rgba(20,20,40,.18); display: none; }
 .tt b { display: block; }
 .tt span { font: 11px var(--mono); color: var(--muted); }
@@ -263,7 +263,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
         if (!info.object) { tt.style.display = 'none'; return; }
         var o = info.object, p = o.p >= 0 ? P[o.p] : OTHER;
         tt.innerHTML = S.layout === 'noise'
-          ? '<b>Subscriber #' + subId(o) + '</b><span>' + CATS[o.cat[0]] + ' ' + o.catp[0] + '% · ' + o.gb + ' GB/mo · ' + o.night + '% at night</span><span>' + AREAS[o.area] + (o.work !== o.area ? ' → ' + AREAS[o.work] : ' (stays local)') + ' · ' + o.km + ' km/day</span>'
+          ? '<b>Subscriber #' + subId(o) + '</b><span>' + CATS[o.cat[0]] + ' ' + o.catp[0] + '%, ' + o.gb + ' GB/mo, ' + o.night + '% at night</span><span>' + AREAS[o.area] + (o.work !== o.area ? ' → ' + AREAS[o.work] : ' (stays local)') + ', ' + o.km + ' km/day</span>'
           : '<b>' + p.name + '</b><span>home: ' + AREAS[o.area] + '</span>';
         tt.style.display = 'block'; tt.style.left = (info.x + 14) + 'px'; tt.style.top = (info.y + 10) + 'px';
       },
@@ -378,7 +378,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
       '<p class="sec">Content mix</p><div class="bars">' + d.cat.map(function (c, i) { return '<span>' + CATS[c] + '</span><span class="tr"><b style="width:' + Math.min(100, d.catp[i] * 2) + '%;background:' + rgb(CAT_COL[c]) + '"></b></span><span class="v">' + d.catp[i] + '%</span>'; }).join('') + '</div>' +
       '<p class="sec">When they are online</p><div class="spark mono"><svg viewBox="0 0 ' + W + ' ' + H + '">' + strip + '</svg></div>' +
       '<p class="sec">Where they sleep and spend the day</p><div class="minimap"><svg viewBox="-4 -4 ' + (MW + 70) + ' ' + (MH + 8) + '">' + dots + trip + '<circle cx="' + h[0] + '" cy="' + h[1] + '" r="6" fill="' + col + '"/></svg></div>' +
-      '<p class="sub">● home ' + AREAS[d.area] + (d.work !== d.area ? ' · ○ day ' + AREAS[d.work] : ' · stays local') + '</p>';
+      '<p class="sub">● home ' + AREAS[d.area] + (d.work !== d.area ? ', ○ day ' + AREAS[d.work] : ', stays local') + '</p>';
     card.hidden = false;
     card.querySelector('.x').onclick = function () { card.hidden = true; S.focus = null; refresh(); };
   }
@@ -396,12 +396,12 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
   }
 
   // ---------- story ----------
-  var FEED = [['06:12', 'Mobility', 'leaves home · Depok, Beji'], ['06:40', 'Ride & delivery', 'bike ride booked'], ['07:05', 'Mobility', 'tower hop · Lenteng Agung → UI campus'], ['09:30', 'Learning', 'campus LMS, 1.2 GB lecture video'], ['12:18', 'Ride & delivery', 'food delivery, transaction'], ['15:02', 'Social & chat', 'group chat, 340 messages'], ['19:45', 'E-commerce', 'browses phone cases, no purchase'], ['23:10', 'Video & music', 'short video, 2 h, 3.4 GB'], ['01:20', 'Games', 'mobile game server, 45 min']];
+  var FEED = [['06:12', 'Mobility', 'leaves home, Depok, Beji'], ['06:40', 'Ride & delivery', 'bike ride booked'], ['07:05', 'Mobility', 'tower hop, Lenteng Agung → UI campus'], ['09:30', 'Learning', 'campus LMS, 1.2 GB lecture video'], ['12:18', 'Ride & delivery', 'food delivery, transaction'], ['15:02', 'Social & chat', 'group chat, 340 messages'], ['19:45', 'E-commerce', 'browses phone cases, no purchase'], ['23:10', 'Video & music', 'short video, 2 h, 3.4 GB'], ['01:20', 'Games', 'mobile game server, 45 min']];
   var STEPS = [
     { t: 'Signals', h: 'One subscriber, one day', layout: 'noise',
       body: '<p>The network sees no names, only behaviour: which <b>domains</b> a line reaches, which <b>cell towers</b> it pings, and <b>how much data</b> it uses, and when.</p><ul class="feed" id="feed">' + FEED.map(function (f) { return '<li><b>' + f[0] + '</b><span>' + f[2] + ' <em>· ' + f[1] + '</em></span></li>'; }).join('') + '</ul><p>Every dot is one subscriber like this, sized by data volume. Click any dot to see their profile: content mix, hours online, home and where they spend the day. No one has a persona yet.</p>' + colorChips() },
     { t: 'Embed', h: 'Behaviour becomes a vector', layout: 'noise',
-      body: '<p>Each day is turned into a sentence of tokens: <code>campus_lms · food_order · night_video · tower_depok</code>. <b>Word2Vec</b> learns which tokens appear together, so a subscriber becomes a point where similar lives sit close.</p><p>Location (home/work towers, mobility radius) and usage (volume, night share, top-up pattern) are added as extra features.</p>' + colorChips() },
+      body: '<p>Each day is turned into a sentence of tokens: <code>campus_lms, food_order, night_video, tower_depok</code>. <b>Word2Vec</b> learns which tokens appear together, so a subscriber becomes a point where similar lives sit close.</p><p>Location (home/work towers, mobility radius) and usage (volume, night share, top-up pattern) are added as extra features.</p>' + colorChips() },
     { t: 'Personas', h: 'Clusters get names', layout: 'clus',
       body: '<p>Close points form groups. Analysts read each group\'s profile and name it. Click a colour or a dot to open its profile.</p><p>Where labels exist, a <b>supervised model</b> replaces the cluster. <b>White collar</b> (marked ✦) is trained on corporate-paid plans plus a 3% survey: <span id="wcnum"></span></p><ul class="legend" id="legend"></ul>' },
     { t: 'Market', h: 'Build an audience', layout: 'clus',
@@ -454,7 +454,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
     }
     var mk = MARKETS.filter(function (m) { return JSON.stringify(S.areas) === JSON.stringify(m[1]); })[0], mName = mk ? mk[0] : AREAS.filter(function (x, j) { return S.areas[j]; }).join(' + ');
     var p = byId[S.seedP];
-    var a = document.getElementById('aud'); if (a) { a.innerHTML = fmt(S.seedN * PER_DOT); document.getElementById('audsub').textContent = p.name + ' · ' + mName; }
+    var a = document.getElementById('aud'); if (a) { a.innerHTML = fmt(S.seedN * PER_DOT); document.getElementById('audsub').textContent = p.name + ', ' + mName; }
     var l = document.getElementById('lal');
     if (l) {
       l.value = S.lal; l.oninput = function () { S.lal = +l.value; recompute(); render(); refresh(); };
@@ -463,7 +463,7 @@ body.embed .panel, body.embed .card, body.embed .back, body.embed .hint { displa
       document.getElementById('k2').textContent = '+' + fmtT(S.lalN * PER_DOT);
       document.getElementById('k3').textContent = Math.round(100 * (S.seedN + .55 * S.lalN) / Math.max(1, tot)) + '%';
       document.getElementById('aud2').innerHTML = fmt(tot * PER_DOT);
-      document.getElementById('audsub2').textContent = p.name + ' + look-alikes · ' + mName;
+      document.getElementById('audsub2').textContent = p.name + ' + look-alikes, ' + mName;
     }
   }
 
